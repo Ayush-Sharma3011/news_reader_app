@@ -1,27 +1,33 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../models/news_article.dart';
 
 class ApiService {
-  static const String _apiKey = 'YOUR_API_KEY_HERE';
-  static const String _baseUrl = 'https://newsapi.org/v2';
+  static const String _apiKey = '5c71c940-50fb-49ec-85c6-c87e70792a79';
+  static const String _baseUrl = 'http://analytics.eventregistry.org/api/v1/annotate';
 
-  static Future<List<NewsArticle>> fetchNews([String query = '']) async {
-    final url = Uri.parse(
-      query.isEmpty
-          ? '$_baseUrl/top-headlines?country=in&apiKey=$_apiKey'
-          : '$_baseUrl/everything?q=$query&apiKey=$_apiKey',
+  static Future<List<String>> fetchAnnotations(String text) async {
+    final response = await http.post(
+      Uri.parse(_baseUrl),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'text': text,
+        'apiKey': _apiKey,
+      }),
     );
 
-    final response = await http.get(url);
-    final body = json.decode(response.body);
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
 
-    if (response.statusCode == 200 && body['status'] == 'ok') {
-      return (body['articles'] as List)
-          .map((json) => NewsArticle.fromJson(json))
-          .toList();
+      // Assuming the response contains an 'annotations' field
+      if (data['annotations'] != null) {
+        return (data['annotations'] as List)
+            .map((item) => item['spot'] as String)
+            .toList();
+      } else {
+        throw Exception('No annotations found');
+      }
     } else {
-      throw Exception('Failed to load news');
+      throw Exception('Failed to load annotations');
     }
   }
 }

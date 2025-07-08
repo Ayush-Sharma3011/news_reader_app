@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
-import '../models/news_article.dart';
 import '../services/api_service.dart';
-import 'detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -11,24 +9,24 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late Future<List<NewsArticle>> _news;
+  late Future<List<String>> _annotations;
   final TextEditingController _controller = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _news = ApiService.fetchNews();
+    _annotations = ApiService.fetchAnnotations("Microsoft released Windows 11");
   }
 
-  Future<void> _refreshNews() async {
+  Future<void> _refreshAnnotations() async {
     setState(() {
-      _news = ApiService.fetchNews(_controller.text);
+      _annotations = ApiService.fetchAnnotations(_controller.text);
     });
   }
 
-  void _searchNews() {
+  void _searchAnnotations() {
     setState(() {
-      _news = ApiService.fetchNews(_controller.text);
+      _annotations = ApiService.fetchAnnotations(_controller.text);
     });
   }
 
@@ -36,22 +34,22 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('News Reader'),
+        title: const Text('Entity Annotator'),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(50),
           child: Padding(
             padding: const EdgeInsets.all(8),
             child: TextField(
               controller: _controller,
-              onSubmitted: (_) => _searchNews(),
+              onSubmitted: (_) => _searchAnnotations(),
               decoration: InputDecoration(
-                hintText: 'Search news...',
+                hintText: 'Enter text to annotate...',
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: IconButton(
                   icon: const Icon(Icons.clear),
                   onPressed: () {
                     _controller.clear();
-                    _searchNews();
+                    _searchAnnotations();
                   },
                 ),
                 filled: true,
@@ -65,33 +63,24 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       body: RefreshIndicator(
-        onRefresh: _refreshNews,
-        child: FutureBuilder<List<NewsArticle>>(
-          future: _news,
+        onRefresh: _refreshAnnotations,
+        child: FutureBuilder<List<String>>(
+          future: _annotations,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             } else if (snapshot.hasError) {
               return Center(child: Text('Error: ${snapshot.error}'));
             } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return const Center(child: Text('No news found.'));
+              return const Center(child: Text('No annotations found.'));
             }
 
-            final articles = snapshot.data!;
+            final annotations = snapshot.data!;
             return ListView.builder(
-              itemCount: articles.length,
+              itemCount: annotations.length,
               itemBuilder: (context, index) {
-                final article = articles[index];
                 return ListTile(
-                  leading: Image.network(article.imageUrl, width: 100, fit: BoxFit.cover),
-                  title: Text(article.title, maxLines: 2, overflow: TextOverflow.ellipsis),
-                  subtitle: Text(article.description, maxLines: 2),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => DetailScreen(article: article)),
-                    );
-                  },
+                  title: Text(annotations[index]),
                 );
               },
             );
